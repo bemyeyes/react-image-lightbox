@@ -311,7 +311,13 @@ var ZOOM_BUTTON_INCREMENT_SIZE = 100; // Used to judge the amount of horizontal 
 
 var WHEEL_MOVE_X_THRESHOLD = 200; // Used to judge the amount of vertical scroll needed to initiate a zoom action
 
-var WHEEL_MOVE_Y_THRESHOLD = 1;
+var WHEEL_MOVE_Y_THRESHOLD = 1; // The minimum rotation value of the image, we should go to MAX_ROTATION_VALUE when going below this value
+
+var MIN_ROTATION_VALUE = 0; // The maximum rotation value of the image, we should reset to 0 when going above this value
+
+var MAX_ROTATION_VALUE = 270; // How much to rotate an image by when the rotation buttons are clicked
+
+var ROTATE_BUTTON_INCREMENT_SIZE = 90;
 var KEYS = {
   ESC: 27,
   LEFT_ARROW: 37,
@@ -385,7 +391,9 @@ var ReactImageLightbox =
             _ref$zoom = _ref.zoom,
             zoom = _ref$zoom === void 0 ? 1 : _ref$zoom,
             width = _ref.width,
-            targetWidth = _ref.targetWidth;
+            targetWidth = _ref.targetWidth,
+            _ref$rotation = _ref.rotation,
+            rotation = _ref$rotation === void 0 ? 0 : _ref$rotation;
           var nextX = x;
           var windowWidth = getWindowWidth();
 
@@ -399,7 +407,8 @@ var ReactImageLightbox =
               .concat(nextX, 'px,')
               .concat(y, 'px,0) scale3d(')
               .concat(scaleFactor, ',')
-              .concat(scaleFactor, ',1)'),
+              .concat(scaleFactor, ',1) rotate(')
+              .concat(rotation, 'deg)'),
           };
         },
       },
@@ -429,6 +438,11 @@ var ReactImageLightbox =
         // Zoom level of image
         zoomLevel: MIN_ZOOM_LEVEL,
         //-----------------------------
+        // Rotation settings
+        //-----------------------------
+        // Rotation value of the image
+        rotationValue: MIN_ROTATION_VALUE,
+        //-----------------------------
         // Image position settings
         //-----------------------------
         // Horizontal offset from center
@@ -442,6 +456,8 @@ var ReactImageLightbox =
       _this.outerEl = React__default.createRef();
       _this.zoomInBtn = React__default.createRef();
       _this.zoomOutBtn = React__default.createRef();
+      _this.rotateCounterclockwiseBtn = React__default.createRef();
+      _this.rotateClockwiseBtn = React__default.createRef();
       _this.caption = React__default.createRef();
       _this.closeIfClickInner = _this.closeIfClickInner.bind(
         _assertThisInitialized(_this)
@@ -489,6 +505,12 @@ var ReactImageLightbox =
         _assertThisInitialized(_this)
       );
       _this.handleZoomOutButtonClick = _this.handleZoomOutButtonClick.bind(
+        _assertThisInitialized(_this)
+      );
+      _this.handleRotateCounterclockwiseButtonClick = _this.handleRotateCounterclockwiseButtonClick.bind(
+        _assertThisInitialized(_this)
+      );
+      _this.handleRotateClockwiseButtonClick = _this.handleRotateClockwiseButtonClick.bind(
         _assertThisInitialized(_this)
       );
       _this.requestClose = _this.requestClose.bind(
@@ -960,6 +982,17 @@ var ReactImageLightbox =
             zoomLevel: nextZoomLevel,
             offsetX: nextOffsetX,
             offsetY: nextOffsetY,
+          });
+        },
+      },
+      {
+        key: 'changeRotation',
+        value: function changeRotation(rotationValue) {
+          // Snap back to center when rotating
+          this.setState({
+            rotationValue: rotationValue,
+            offsetX: 0,
+            offsetY: 0,
           });
         },
       },
@@ -1649,6 +1682,32 @@ var ReactImageLightbox =
         },
       },
       {
+        key: 'handleRotateCounterclockwiseButtonClick',
+        value: function handleRotateCounterclockwiseButtonClick() {
+          var nextRotationValue =
+            this.state.rotationValue - ROTATE_BUTTON_INCREMENT_SIZE;
+
+          if (nextRotationValue < MIN_ROTATION_VALUE) {
+            nextRotationValue = MAX_ROTATION_VALUE;
+          }
+
+          this.changeRotation(nextRotationValue);
+        },
+      },
+      {
+        key: 'handleRotateClockwiseButtonClick',
+        value: function handleRotateClockwiseButtonClick() {
+          var nextRotationValue =
+            this.state.rotationValue + ROTATE_BUTTON_INCREMENT_SIZE;
+
+          if (nextRotationValue > MAX_ROTATION_VALUE) {
+            nextRotationValue = MIN_ROTATION_VALUE;
+          }
+
+          this.changeRotation(nextRotationValue);
+        },
+      },
+      {
         key: 'handleCaptionMousewheel',
         value: function handleCaptionMousewheel(event) {
           event.stopPropagation();
@@ -1879,6 +1938,7 @@ var ReactImageLightbox =
             clickOutsideToClose = _this$props.clickOutsideToClose,
             discourageDownloads = _this$props.discourageDownloads,
             enableZoom = _this$props.enableZoom,
+            enableRotation = _this$props.enableRotation,
             imageTitle = _this$props.imageTitle,
             nextSrc = _this$props.nextSrc,
             prevSrc = _this$props.prevSrc,
@@ -1889,6 +1949,7 @@ var ReactImageLightbox =
             reactModalProps = _this$props.reactModalProps;
           var _this$state = this.state,
             zoomLevel = _this$state.zoomLevel,
+            rotationValue = _this$state.rotationValue,
             offsetX = _this$state.offsetX,
             offsetY = _this$state.offsetY,
             isClosing = _this$state.isClosing,
@@ -2064,6 +2125,7 @@ var ReactImageLightbox =
             x: -1 * offsetX,
             y: -1 * offsetY,
             zoom: zoomMultiplier,
+            rotation: rotationValue,
           }); // Previous Image (displayed on the left)
 
           addImage('prevSrc', 'ril-image-prev ril__imagePrev', {
@@ -2289,6 +2351,52 @@ var ReactImageLightbox =
                             : undefined,
                       })
                     ),
+                  enableRotation &&
+                    React__default.createElement(
+                      'li',
+                      {
+                        className: 'ril-toolbar__item ril__toolbarItem',
+                      },
+                      React__default.createElement('button', {
+                        // Lightbox rotate counterclockwise button
+                        type: 'button',
+                        key: 'rotate-ccw',
+                        'aria-label': this.props.rotateCounterclockwiseLabel,
+                        className: [
+                          'ril-rotate-ccw',
+                          'ril__toolbarItemChild',
+                          'ril__builtinButton',
+                          'ril__rotateCounterclockwiseButton',
+                        ].join(' '),
+                        ref: this.rotateCounterclockwiseBtn,
+                        onClick: !this.isAnimating()
+                          ? this.handleRotateCounterclockwiseButtonClick
+                          : undefined,
+                      })
+                    ),
+                  enableRotation &&
+                    React__default.createElement(
+                      'li',
+                      {
+                        className: 'ril-toolbar__item ril__toolbarItem',
+                      },
+                      React__default.createElement('button', {
+                        // Lightbox rotate clockwise button
+                        type: 'button',
+                        key: 'rotate-cw',
+                        'aria-label': this.props.rotateClockwiseLabel,
+                        className: [
+                          'ril-rotate-cw',
+                          'ril__toolbarItemChild',
+                          'ril__builtinButton',
+                          'ril__rotateClockwiseButton',
+                        ].join(' '),
+                        ref: this.rotateClockwiseBtn,
+                        onClick: !this.isAnimating()
+                          ? this.handleRotateClockwiseButtonClick
+                          : undefined,
+                      })
+                    ),
                   React__default.createElement(
                     'li',
                     {
@@ -2432,6 +2540,8 @@ ReactImageLightbox.propTypes = {
   clickOutsideToClose: PropTypes.bool,
   // Set to false to disable zoom functionality and hide zoom buttons
   enableZoom: PropTypes.bool,
+  // When given, rotation will be enabled for the lightbox, and rotate buttons will be shown
+  enableRotation: PropTypes.bool,
   // Override props set on react-modal (https://github.com/reactjs/react-modal)
   reactModalProps: PropTypes.shape({}),
   // Aria-labels
@@ -2439,6 +2549,8 @@ ReactImageLightbox.propTypes = {
   prevLabel: PropTypes.string,
   zoomInLabel: PropTypes.string,
   zoomOutLabel: PropTypes.string,
+  rotateCounterclockwiseLabel: PropTypes.string,
+  rotateClockwiseLabel: PropTypes.string,
   closeLabel: PropTypes.string,
   imageLoadErrorMessage: PropTypes.node,
 };
@@ -2454,6 +2566,7 @@ ReactImageLightbox.defaultProps = {
   closeLabel: 'Close lightbox',
   discourageDownloads: false,
   enableZoom: true,
+  enableRotation: true,
   imagePadding: 10,
   imageCrossOrigin: null,
   keyRepeatKeyupBonus: 40,
@@ -2474,6 +2587,8 @@ ReactImageLightbox.defaultProps = {
   wrapperClassName: '',
   zoomInLabel: 'Zoom in',
   zoomOutLabel: 'Zoom out',
+  rotateCounterclockwiseLabel: 'Rotate counterclockwise',
+  rotateClockwiseLabel: 'Rotate clockwise',
   imageLoadErrorMessage: 'This image failed to load',
 };
 
