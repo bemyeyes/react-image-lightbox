@@ -28,6 +28,7 @@ export interface ILightBoxProps {
     reactModalProps?: any;
     imagePadding?: number;
     clickOutsideToClose?: boolean;
+    enableRotation?: boolean;
     enableZoom?: boolean;
     wrapperClassName?: string;
     nextLabel?: string;
